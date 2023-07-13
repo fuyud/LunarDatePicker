@@ -28,9 +28,20 @@ class ViewController: UIViewController {
     }
     
     @IBAction func normalDate(_ sender: UIButton) {
-        CPDatePickerView.showPickerView { res in
+        let minDate = self.stringToDate("2022-8-22 12:34:50")
+        let maxDate = self.stringToDate("2026-9-13 08:20:50")
+        CPDatePickerView.showPickerView(minDate: minDate, maxDate: maxDate) { res in
             print("选择日期" + (res ?? ""))
         }
+    }
+    
+    /// 字符串转Date
+    func stringToDate(_ string:String, dateFormat: String = "yyyy-MM-dd HH:mm:ss") -> Date {
+        let formatter = DateFormatter()
+        formatter.locale = Locale.init(identifier: "zh_CN")
+        formatter.dateFormat = dateFormat
+        let date = formatter.date(from: string)
+        return date!
     }
     
     @IBAction func stringSelect(_ sender: UIButton) {

@@ -191,6 +191,49 @@ struct CPPickerManager {
     }
 }
 
+extension Date {
+    
+    static let calendar = NSCalendar.init(calendarIdentifier: .gregorian)
+    
+    static let unitFlags: NSCalendar.Unit = [.year, .month, .day, .hour, .minute, .second, .weekday, .weekdayOrdinal]
+    
+    //MARK: --- 获取指定日期的年份 ---
+    func cp_year() -> Int {
+        let components = Date.calendar?.components(Self.unitFlags, from: self)
+        return components?.year ?? 0
+    }
+    
+    //MARK: --- 获取指定日期的月份 ---
+    func cp_month() -> Int {
+        let components = Date.calendar?.components(Self.unitFlags, from: self)
+        return components?.month ?? 0
+    }
+    
+    //MARK: --- 获取指定日期的天 ---
+    func cp_day() -> Int {
+        let components = Date.calendar?.components(Self.unitFlags, from: self)
+        return components?.day ?? 0
+    }
+
+    //MARK: --- 获取指定日期的小时 ---
+    func cp_hour() -> Int {
+        let components = Date.calendar?.components(Self.unitFlags, from: self)
+        return components?.hour ?? 0
+    }
+    
+    //MARK: --- 获取指定日期的分钟 ---
+    func cp_minute() -> Int {
+        let components = Date.calendar?.components(Self.unitFlags, from: self)
+        return components?.minute ?? 0
+    }
+
+    //MARK: --- 获取指定日期的秒---
+    func cp_second() -> Int {
+        let components = Date.calendar?.components(Self.unitFlags, from: self)
+        return components?.second ?? 0
+    }
+}
+
 enum CPDateType: Int {
     /// 年
     case YY = 1

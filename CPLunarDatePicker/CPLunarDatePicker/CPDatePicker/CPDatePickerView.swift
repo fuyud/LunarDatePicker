@@ -15,8 +15,12 @@ class CPDatePickerView: CPBasePickerView {
     
     /// *************************** public **************************
     
-    /// 开始年-结束年，默认1800-2200。支持公元后的任意年
-    var startEndYear: (startYear: Int, endYear: Int) = (1, 2200) { didSet { reloadAllYears() } }
+//    /// 开始年-结束年，默认1800-2200。支持公元后的任意年 选择世纪时使用
+//    var startEndYear: (startYear: Int, endYear: Int) = (1, 2200) { didSet { reloadAllYears() } }
+    
+    var minDate: Date = Date.distantPast
+    
+    var maxDate: Date = Date.distantFuture
     
     var dateMode: CPDateType = .YMDHMS {
         didSet {
@@ -61,6 +65,7 @@ class CPDatePickerView: CPBasePickerView {
         get { return _sD }
         set {
             _sD = newValue
+            reloadAllYears()
             reloadSelectDate()
         }
     }
@@ -85,7 +90,7 @@ class CPDatePickerView: CPBasePickerView {
         var cal = Calendar(identifier: .gregorian)
         cal.timeZone = chinaTimeZone!
         let comps = cal.dateComponents([.year, .month, .day, .hour, .minute, .second], from: Date())
-        return CPNormalDate(year: comps.year ?? startEndYear.startYear,
+        return CPNormalDate(year: comps.year ?? minDate.cp_year(),
                             month: comps.month ?? 1,
                             day: comps.day ?? 1,
                             hour: comps.hour ?? 0,
@@ -94,14 +99,100 @@ class CPDatePickerView: CPBasePickerView {
                             isLeapMonth: false)
     }()
     
+    /// 更新年份数据
     private func reloadAllYears() {
-        // 更新年份数据
         allYears.removeAll()
-        let allYearCount = startEndYear.endYear - startEndYear.startYear
-        for i in 0..<allYearCount {
-            allYears.append(i + startEndYear.startYear)
+        let maxYear = maxDate.cp_year()
+        let minYear = minDate.cp_year()
+        for i in minYear...maxYear {
+            allYears.append(i)
         }
+        reloadAllMonths(year: _sD.year)
+        reloadAllDays(year: _sD.year, month: _sD.month)
+        reloadAllHours(year: _sD.year, month: _sD.month, day: _sD.day)
+        reloadAllMins(year: _sD.year, month: _sD.month, day: _sD.day, hour: _sD.hour)
+        reloadAllSeconds(year: _sD.year, month: _sD.month, day: _sD.day, hour: _sD.hour, minute: _sD.minute)
         reloadSelectDate()
+    }
+    
+    /// 更新月份数据
+    private func reloadAllMonths(year: Int) {
+        allMonths.removeAll()
+        var startMonth: Int = 1
+        var endMonth: Int = 12
+        if year == minDate.cp_year() {
+            startMonth = minDate.cp_month()
+        }
+        if year == self.maxDate.cp_year() {
+            endMonth = maxDate.cp_month()
+        }
+        var arr: [Int] = []
+        for i in startMonth...endMonth { arr.append(i) }
+        allMonths = arr
+    }
+    
+    /// 更新天数数据
+    private func reloadAllDays(year: Int, month: Int) {
+        allDays.removeAll()
+        var startDay: Int = 1
+        var endDay: Int = CPPickerManager.getSolarDaysCount(inYear: year, month: month)
+        if (year == minDate.cp_year() && month == minDate.cp_month()) {
+            startDay = minDate.cp_day()
+        }
+        if (year == maxDate.cp_year() && month == maxDate.cp_month()) {
+            endDay = self.maxDate.cp_day()
+        }
+        var arr: [Int] = []
+        for i in startDay...endDay { arr.append(i) }
+        allDays = arr
+    }
+    
+    /// 更新小时数据
+    private func reloadAllHours(year: Int, month: Int, day: Int) {
+        allHours.removeAll()
+        var startHour: Int = 0
+        var endHour: Int = 23
+        if (year == minDate.cp_year() && month == minDate.cp_month() && day == minDate.cp_day()) {
+            startHour = minDate.cp_hour()
+        }
+        if (year == maxDate.cp_year() && month == maxDate.cp_month() && day == maxDate.cp_day()) {
+            endHour = maxDate.cp_hour()
+        }
+        var arr: [Int] = []
+        for i in startHour...endHour { arr.append(i) }
+        allHours = arr
+    }
+    
+    /// 更新分钟数据
+    private func reloadAllMins(year: Int, month: Int, day: Int, hour: Int) {
+        allMins.removeAll()
+        var startMinute: Int = 0
+        var endMinute: Int = 59
+        if (year == minDate.cp_year() && month == minDate.cp_month() && day == minDate.cp_day() && hour == minDate.cp_hour()) {
+            startMinute = minDate.cp_minute()
+        }
+        if (year == maxDate.cp_year() && month == maxDate.cp_month() && day == maxDate.cp_day() && hour == maxDate.cp_hour()) {
+            endMinute = maxDate.cp_minute()
+        }
+        var arr: [Int] = []
+        for i in startMinute...endMinute { arr.append(i) }
+        allMins = arr
+    }
+    
+    /// 更新秒钟数据
+    private func reloadAllSeconds(year: Int, month: Int, day: Int, hour: Int, minute: Int) {
+        allSecs.removeAll()
+        var startSecond: Int = 0
+        var endSecond: Int = 59
+        if (year == minDate.cp_year() && month == minDate.cp_month() && day == minDate.cp_day() && hour == minDate.cp_hour() && minute == minDate.cp_minute()) {
+            startSecond = minDate.cp_second()
+        }
+        if (year == maxDate.cp_year() && month == maxDate.cp_month() && day == maxDate.cp_day() && hour == maxDate.cp_hour() && minute == maxDate.cp_minute()) {
+            endSecond = maxDate.cp_second()
+        }
+        var arr: [Int] = []
+        for i in startSecond...endSecond { arr.append(i) }
+        allSecs = arr
     }
     
     private func reloadSelectDate() {
@@ -110,9 +201,9 @@ class CPDatePickerView: CPBasePickerView {
         comps.forEach {
             switch $0 {
             case .year:
-                var selectYear = _sD.year - startEndYear.startYear
+                var selectYear = _sD.year - minDate.cp_year()
                 if selectYear < 0 {
-                    selectYear = startEndYear.startYear
+                    selectYear = minDate.cp_year()
                 }
                 pickerView.selectRow(selectYear, inComponent: CPNormalDateType.year.rawValue, animated: false)
             case .month:
@@ -171,6 +262,8 @@ class CPDatePickerView: CPBasePickerView {
         return arr
     }()
     
+    private lazy var allDays: [Int] = []
+    
     private lazy var allHours: [Int] = {
         var arr: [Int] = []
         for i in 0..<24 { arr.append(i) }
@@ -209,26 +302,28 @@ extension CPDatePickerView {
     ///  - dateMode:  年月日时分秒
     ///  - selectValue: 选择时间
     /// - Returns: void
-    static func showPickerView(title: String = "请选择", start: Int = 1, end: Int = 0, dateMode: CPDateType = .YMDHMS, selectValue: String = "", _ sureClourse: @escaping CPParamClosure<String>) {
+    static func showPickerView(title: String = "请选择", minDate: Date = Date.distantPast, maxDate: Date = Date.distantFuture, dateMode: CPDateType = .YMDHMS, selectValue: String = "", _ sureClourse: @escaping CPParamClosure<String>) {
         let pickerView = CPDatePickerView()
         pickerView.titleLabel.text = title
         pickerView.dateHeaderView.mode = dateMode
         pickerView.dateMode = dateMode
-        let endYear = (end == 0) ? (String.getCurrentYear() + 100) : end
-        pickerView.startEndYear = (start, endYear)
+//        let endYear = (end == 0) ? (String.getCurrentYear() + 100) : end
+//        pickerView.startEndYear = (start, endYear)
+        pickerView.minDate = minDate
+        pickerView.maxDate = maxDate
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd"
         let date = formatter.date(from: selectValue) ?? Date()
         var cal = Calendar(identifier: .gregorian)
         cal.timeZone = CPPickerManager.chinaTimeZone!
         let comps = cal.dateComponents([.year, .month, .day, .hour, .minute, .second], from: date)
-        pickerView.selectDate = CPNormalDate(year: comps.year ?? start,
-                                                     month: comps.month ?? 1,
-                                                     day: comps.day ?? 1,
-                                                     hour: comps.hour ?? 0,
-                                                     minute: comps.minute ?? 0,
-                                                     second: comps.second ?? 0,
-                                                     isLeapMonth: false)
+        pickerView.selectDate = CPNormalDate(year: comps.year ?? minDate.cp_year(),
+                                             month: comps.month ?? 1,
+                                             day: comps.day ?? 1,
+                                             hour: comps.hour ?? 0,
+                                             minute: comps.minute ?? 0,
+                                             second: comps.second ?? 0,
+                                             isLeapMonth: false)
         pickerView.sureResultClourse = sureClourse
         pickerView.show()
     }
@@ -245,7 +340,7 @@ extension CPDatePickerView: UIPickerViewDelegate, UIPickerViewDataSource {
         } else if component == CPNormalDateType.month.rawValue {
             return allMonths.count
         } else if component == CPNormalDateType.day.rawValue {
-            return CPPickerManager.getSolarDaysCount(inYear: _sD.year, month: _sD.month)
+            return allDays.count
         } else if component == CPNormalDateType.hour.rawValue {
             return allHours.count
         } else if component == CPNormalDateType.min.rawValue {
@@ -270,7 +365,7 @@ extension CPDatePickerView: UIPickerViewDelegate, UIPickerViewDataSource {
         } else if component == CPNormalDateType.month.rawValue {
             str = "\(allMonths[row])"
         } else if component == CPNormalDateType.day.rawValue {
-            str = "\(row+1)"
+            str = "\(allDays[row])"
         } else if component == CPNormalDateType.hour.rawValue {
             str = "\(allHours[row])"
         } else if component == CPNormalDateType.min.rawValue {
@@ -286,25 +381,149 @@ extension CPDatePickerView: UIPickerViewDelegate, UIPickerViewDataSource {
     
     func pickerView(_ pickerView: UIPickerView, didSelectRow row: Int, inComponent component: Int) {
         if component == CPNormalDateType.year.rawValue {
+            
             _sD.year = allYears[row]
-            pickerView.reloadComponent(CPNormalDateType.month.rawValue)
-            pickerView.reloadComponent(CPNormalDateType.day.rawValue)
+            
+            if dateMode == .YM {
+                reloadAllMonths(year: _sD.year)
+                pickerView.reloadComponent(CPNormalDateType.month.rawValue)
+            }
+            
+            if dateMode == .YMD {
+                reloadAllMonths(year: _sD.year)
+                reloadAllDays(year: _sD.year, month: _sD.month)
+                pickerView.reloadComponent(CPNormalDateType.month.rawValue)
+                pickerView.reloadComponent(CPNormalDateType.day.rawValue)
+            }
+            
+            if dateMode == .YMDH {
+                reloadAllMonths(year: _sD.year)
+                reloadAllDays(year: _sD.year, month: _sD.month)
+                reloadAllHours(year: _sD.year, month: _sD.month, day: _sD.day)
+                pickerView.reloadComponent(CPNormalDateType.month.rawValue)
+                pickerView.reloadComponent(CPNormalDateType.day.rawValue)
+                pickerView.reloadComponent(CPNormalDateType.hour.rawValue)
+            }
+            
+            if dateMode == .YMDHM {
+                reloadAllMonths(year: _sD.year)
+                reloadAllDays(year: _sD.year, month: _sD.month)
+                reloadAllHours(year: _sD.year, month: _sD.month, day: _sD.day)
+                reloadAllMins(year: _sD.year, month: _sD.month, day: _sD.day, hour: _sD.hour)
+                pickerView.reloadComponent(CPNormalDateType.month.rawValue)
+                pickerView.reloadComponent(CPNormalDateType.day.rawValue)
+                pickerView.reloadComponent(CPNormalDateType.hour.rawValue)
+                pickerView.reloadComponent(CPNormalDateType.min.rawValue)
+            }
+            
+            if dateMode == .YMDHMS {
+                reloadAllMonths(year: _sD.year)
+                reloadAllDays(year: _sD.year, month: _sD.month)
+                reloadAllHours(year: _sD.year, month: _sD.month, day: _sD.day)
+                reloadAllMins(year: _sD.year, month: _sD.month, day: _sD.day, hour: _sD.hour)
+                reloadAllSeconds(year: _sD.year, month: _sD.month, day: _sD.day, hour: _sD.hour, minute: _sD.minute)
+                pickerView.reloadComponent(CPNormalDateType.month.rawValue)
+                pickerView.reloadComponent(CPNormalDateType.day.rawValue)
+                pickerView.reloadComponent(CPNormalDateType.hour.rawValue)
+                pickerView.reloadComponent(CPNormalDateType.min.rawValue)
+                pickerView.reloadComponent(CPNormalDateType.sec.rawValue)
+            }
+            
         } else if component == CPNormalDateType.month.rawValue {
             _sD.isLeapMonth = false
             _sD.month = allMonths[row]
             
-            //更改月份时，如果当前选中日(31)超过了当前月份的总天数(30)，则选中日置为当前月最后一天(30)
-            let daysCount = CPPickerManager.getSolarDaysCount(inYear: _sD.year, month: _sD.month)
-            if _sD.day > daysCount {
-                _sD.day = daysCount
+            if dateMode == .YMD {
+                reloadAllDays(year: _sD.year, month: _sD.month)
+                let daysCount = allDays.count
+                if _sD.day > daysCount {
+                    _sD.day = daysCount
+                }
+                pickerView.reloadComponent(CPNormalDateType.day.rawValue)
             }
-            pickerView.reloadComponent(CPNormalDateType.day.rawValue)
+            
+            if dateMode == .YMDH {
+                reloadAllDays(year: _sD.year, month: _sD.month)
+                let daysCount = allDays.count
+                if _sD.day > daysCount {
+                    _sD.day = daysCount
+                }
+                reloadAllHours(year: _sD.year, month: _sD.month, day: _sD.day)
+                pickerView.reloadComponent(CPNormalDateType.day.rawValue)
+                pickerView.reloadComponent(CPNormalDateType.hour.rawValue)
+            }
+            
+            if dateMode == .YMDHM {
+                reloadAllDays(year: _sD.year, month: _sD.month)
+                let daysCount = allDays.count
+                if _sD.day > daysCount {
+                    _sD.day = daysCount
+                }
+                reloadAllHours(year: _sD.year, month: _sD.month, day: _sD.day)
+                reloadAllMins(year: _sD.year, month: _sD.month, day: _sD.day, hour: _sD.hour)
+                pickerView.reloadComponent(CPNormalDateType.day.rawValue)
+                pickerView.reloadComponent(CPNormalDateType.hour.rawValue)
+                pickerView.reloadComponent(CPNormalDateType.min.rawValue)
+            }
+            
+            if dateMode == .YMDHMS {
+                reloadAllDays(year: _sD.year, month: _sD.month)
+                let daysCount = allDays.count
+                if _sD.day > daysCount {
+                    _sD.day = daysCount
+                }
+                reloadAllHours(year: _sD.year, month: _sD.month, day: _sD.day)
+                reloadAllMins(year: _sD.year, month: _sD.month, day: _sD.day, hour: _sD.hour)
+                reloadAllSeconds(year: _sD.year, month: _sD.month, day: _sD.day, hour: _sD.hour, minute: _sD.minute)
+                pickerView.reloadComponent(CPNormalDateType.day.rawValue)
+                pickerView.reloadComponent(CPNormalDateType.hour.rawValue)
+                pickerView.reloadComponent(CPNormalDateType.min.rawValue)
+                pickerView.reloadComponent(CPNormalDateType.sec.rawValue)
+            }
         } else if component == CPNormalDateType.day.rawValue {
-            _sD.day = row+1
+            _sD.day = allDays[row]
+            if dateMode == .YMDH {
+                reloadAllHours(year: _sD.year, month: _sD.month, day: _sD.day)
+                pickerView.reloadComponent(CPNormalDateType.hour.rawValue)
+            }
+            
+            if dateMode == .YMDHM {
+                reloadAllHours(year: _sD.year, month: _sD.month, day: _sD.day)
+                reloadAllMins(year: _sD.year, month: _sD.month, day: _sD.day, hour: _sD.hour)
+                pickerView.reloadComponent(CPNormalDateType.hour.rawValue)
+                pickerView.reloadComponent(CPNormalDateType.min.rawValue)
+            }
+            
+            if dateMode == .YMDHMS {
+                reloadAllHours(year: _sD.year, month: _sD.month, day: _sD.day)
+                reloadAllMins(year: _sD.year, month: _sD.month, day: _sD.day, hour: _sD.hour)
+                reloadAllSeconds(year: _sD.year, month: _sD.month, day: _sD.day, hour: _sD.hour, minute: _sD.minute)
+                pickerView.reloadComponent(CPNormalDateType.hour.rawValue)
+                pickerView.reloadComponent(CPNormalDateType.min.rawValue)
+                pickerView.reloadComponent(CPNormalDateType.sec.rawValue)
+            }
         } else if component == CPNormalDateType.hour.rawValue {
             _sD.hour = allHours[row]
+            
+            if dateMode == .YMDHM {
+                reloadAllMins(year: _sD.year, month: _sD.month, day: _sD.day, hour: _sD.hour)
+                pickerView.reloadComponent(CPNormalDateType.min.rawValue)
+            }
+            
+            if dateMode == .YMDHMS {
+                reloadAllMins(year: _sD.year, month: _sD.month, day: _sD.day, hour: _sD.hour)
+                reloadAllSeconds(year: _sD.year, month: _sD.month, day: _sD.day, hour: _sD.hour, minute: _sD.minute)
+                pickerView.reloadComponent(CPNormalDateType.min.rawValue)
+                pickerView.reloadComponent(CPNormalDateType.sec.rawValue)
+            }
         } else if component == CPNormalDateType.min.rawValue {
             _sD.minute = allMins[row]
+            if dateMode == .YMDHMS {
+                reloadAllSeconds(year: _sD.year, month: _sD.month, day: _sD.day, hour: _sD.hour, minute: _sD.minute)
+                pickerView.reloadComponent(CPNormalDateType.sec.rawValue)
+            }
+        } else {
+            _sD.second = allSecs[row]
         }
         
         setupSelectDateString()
